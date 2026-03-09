@@ -16,6 +16,9 @@ export const metadata: Metadata = {
   title: "DevSearch — Search everywhere, type once",
   description:
     "A unified developer search hub. Type your query once and search across YouTube, GitHub, Stack Overflow, MDN, and more.",
+  verification: {
+    google: "uD7GUaij55aU_Ls-nhD9swWtLt-aKv3cQ-g-97_3jkg",
+  },
 };
 
 export default function RootLayout({
