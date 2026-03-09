@@ -1,7 +1,7 @@
 "use client";
 
+import { useRef } from "react";
 import { Platform } from "@/lib/platforms";
-import { useState } from "react";
 
 interface PlatformIconProps {
   platform: Platform;
@@ -20,11 +20,40 @@ export default function PlatformIcon({
   onSearch,
   isDefault,
 }: PlatformIconProps) {
-  const [hovered, setHovered] = useState(false);
-  const [pressed, setPressed] = useState(false);
+  const btnRef = useRef<HTMLButtonElement>(null);
+  const glowRef = useRef<HTMLDivElement>(null);
+  const iconRef = useRef<HTMLSpanElement>(null);
+  const labelRef = useRef<HTMLSpanElement>(null);
 
-  function handleClick() {
-    onSearch(platform, query);
+  // Direct DOM manipulation — zero re-renders, instant response
+  function handleMouseEnter() {
+    if (btnRef.current) {
+      btnRef.current.style.transform = "scale(1.1)";
+      btnRef.current.style.borderColor = `${platform.color}70`;
+      btnRef.current.style.boxShadow = `0 0 0 1px ${platform.color}30, 0 8px 24px ${platform.color}20`;
+    }
+    if (glowRef.current) glowRef.current.style.opacity = "1";
+    if (iconRef.current) iconRef.current.style.color = platform.color;
+    if (labelRef.current) labelRef.current.style.color = platform.color;
+  }
+
+  function handleMouseLeave() {
+    if (btnRef.current) {
+      btnRef.current.style.transform = "scale(1)";
+      btnRef.current.style.borderColor = "";
+      btnRef.current.style.boxShadow = "none";
+    }
+    if (glowRef.current) glowRef.current.style.opacity = "0";
+    if (iconRef.current) iconRef.current.style.color = "#a1a1aa";
+    if (labelRef.current) labelRef.current.style.color = "#71717a";
+  }
+
+  function handleMouseDown() {
+    if (btnRef.current) btnRef.current.style.transform = "scale(0.93)";
+  }
+
+  function handleMouseUp() {
+    if (btnRef.current) btnRef.current.style.transform = "scale(1.1)";
   }
 
   function handleFavoriteClick(e: React.MouseEvent) {
@@ -39,7 +68,7 @@ export default function PlatformIcon({
         onClick={handleFavoriteClick}
         aria-label={`${isFavorite ? "Remove" : "Add"} ${platform.name} from favorites`}
         className="absolute -top-1 -right-1 z-10 w-5 h-5 flex items-center justify-center rounded-full
-          opacity-0 group-hover:opacity-100 transition-opacity duration-150
+          opacity-0 group-hover:opacity-100 transition-opacity duration-100
           text-zinc-500 hover:text-yellow-400"
       >
         <svg
@@ -57,60 +86,58 @@ export default function PlatformIcon({
         </svg>
       </button>
 
-      {/* Icon button */}
+      {/* Icon button — all visual effects via DOM refs, no React state */}
       <button
-        onClick={handleClick}
-        onMouseEnter={() => setHovered(true)}
-        onMouseLeave={() => { setHovered(false); setPressed(false); }}
-        onMouseDown={() => setPressed(true)}
-        onMouseUp={() => setPressed(false)}
+        ref={btnRef}
+        onClick={() => onSearch(platform, query)}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
+        onMouseDown={handleMouseDown}
+        onMouseUp={handleMouseUp}
         aria-label={`Search on ${platform.name}`}
         title={`Search on ${platform.name}${platform.shortcut ? ` [Ctrl+${platform.shortcut.toUpperCase()}]` : ""}`}
         className="relative w-14 h-14 rounded-2xl flex items-center justify-center
-          bg-zinc-900 border border-zinc-800
-          transition-all duration-150 ease-out
+          bg-zinc-900 border border-zinc-800 cursor-pointer
           focus:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400"
-        style={{
-          transform: pressed ? "scale(0.92)" : hovered ? "scale(1.08)" : "scale(1)",
-          boxShadow: hovered
-            ? `0 0 0 1px ${platform.color}40, 0 8px 24px ${platform.color}25`
-            : "none",
-          borderColor: hovered ? `${platform.color}60` : undefined,
-        }}
+        style={{ transition: "transform 80ms ease, box-shadow 80ms ease, border-color 80ms ease" }}
       >
-        {/* Glow bg */}
+        {/* Glow background */}
         <div
-          className="absolute inset-0 rounded-2xl opacity-0 transition-opacity duration-150"
+          ref={glowRef}
+          className="absolute inset-0 rounded-2xl pointer-events-none"
           style={{
-            background: `radial-gradient(circle at center, ${platform.color}18, transparent 70%)`,
-            opacity: hovered ? 1 : 0,
+            background: `radial-gradient(circle at center, ${platform.color}15, transparent 70%)`,
+            opacity: 0,
+            transition: "opacity 80ms ease",
           }}
         />
 
-        {/* Icon */}
+        {/* SVG icon */}
         <span
-          className="relative w-7 h-7 flex items-center justify-center transition-colors duration-150"
-          style={{ color: hovered ? platform.color : "#a1a1aa" }}
+          ref={iconRef}
+          className="relative w-7 h-7 flex items-center justify-center pointer-events-none"
+          style={{ color: "#a1a1aa", transition: "color 80ms ease" }}
           dangerouslySetInnerHTML={{ __html: platform.iconSvg }}
         />
 
-        {/* Default badge */}
+        {/* Default platform dot */}
         {isDefault && (
-          <span className="absolute -bottom-1 -right-1 w-3 h-3 bg-zinc-400 rounded-full border-2 border-zinc-950" />
+          <span className="absolute -bottom-1 -right-1 w-3 h-3 bg-zinc-400 rounded-full border-2 border-zinc-950 pointer-events-none" />
         )}
       </button>
 
       {/* Label */}
       <span
-        className="text-xs font-medium transition-colors duration-150 select-none"
-        style={{ color: hovered ? platform.color : "#71717a" }}
+        ref={labelRef}
+        className="text-xs font-medium select-none pointer-events-none"
+        style={{ color: "#71717a", transition: "color 80ms ease" }}
       >
         {platform.name}
       </span>
 
       {/* Shortcut badge */}
       {platform.shortcut && (
-        <span className="text-[10px] text-zinc-700 font-mono -mt-1">
+        <span className="text-[10px] text-zinc-700 font-mono -mt-1 pointer-events-none">
           ^{platform.shortcut.toUpperCase()}
         </span>
       )}
